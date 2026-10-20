@@ -1,0 +1,15 @@
+# Python / Flask
+venv/
+__pycache__/
+*.pyc
+
+# React / Vite
+node_modules/
+dist/
+build/
+.DS_Store
+
+# SQLite Databases (ignores any .db files anywhere in the project)
+*.db
+*.sqlite
+*.sqlite3
