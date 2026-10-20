@@ -3,7 +3,9 @@ import React, { useEffect, useState } from "react";
 import POSCheckout from "./POSCheckout";
 import "./App.css";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = window.location.hostname === 'localhost'
+    ? 'http://localhost:5000/api'
+    :'https://electro-pos-backend.onrender.com/api';
 
 // Format prices consistently throughout the application.
 function formatPrice(price) {
