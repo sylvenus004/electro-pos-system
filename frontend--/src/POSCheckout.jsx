@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
 const API_URL = window.location.hostname === 'localhost'
-    ? 'http://localhost:5000/api'
-    : 'https://electro-pos-system.onrender.com/api';
+  ? 'http://localhost:5000/api'
+  : 'https://electro-pos-system.onrender.com/api';
 
 // Format prices in Kenyan shillings.
 function formatPrice(price) {

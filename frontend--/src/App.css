@@ -942,3 +942,20 @@ button:disabled {
     padding: 13px;
   }
 }
+/* Optional Login Styles to match your App.css theme */
+.login-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: var(--bg-main, #f4f6f9);
+}
+
+.login-card {
+  background: #ffffff;
+  padding: 32px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  max-width: 360px;
+}

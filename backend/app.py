@@ -3,6 +3,7 @@ import sqlite3
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from werkzeug.security import generate_password_hash, check_password_hash
 
 from database import get_db, init_db
 
@@ -16,7 +17,7 @@ CORS(
             "origins": [
                 "http://localhost:5173",
                 "http://127.0.0.1:5173",
-                "https://electro-pos-system.vervel.app",
+                "https://electro-pos-system.vercel.app",
             ]
         }
     },
@@ -32,6 +33,73 @@ def error(message, status=400):
 @app.get("/api/health")
 def health():
     return jsonify({"status": "ok"})
+
+
+# --- AUTHENTICATION ROUTES ---
+
+# Register a new user
+@app.post("/api/register")
+def register():
+    data = request.get_json(silent=True) or {}
+    username = str(data.get("username", "")).strip()
+    password = str(data.get("password", "")).strip()
+    role = str(data.get("role", "Cashier")).strip()
+
+    if not username or not password:
+        return error("Username and password are required.")
+
+    hashed_password = generate_password_hash(password)
+    conn = get_db()
+
+    try:
+        cursor = conn.execute(
+            "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
+            (username, hashed_password, role)
+        )
+        conn.commit()
+        return jsonify({
+            "message": "User registered successfully!",
+            "user_id": cursor.lastrowid
+        }), 201
+    except sqlite3.IntegrityError:
+        conn.rollback()
+        return error("Username already exists.", 409)
+    finally:
+        conn.close()
+
+
+# Login user
+@app.post("/api/login")
+def login():
+    data = request.get_json(silent=True) or {}
+    username = str(data.get("username", "")).strip()
+    password = str(data.get("password", "")).strip()
+
+    if not username or not password:
+        return error("Username and password are required.")
+
+    conn = get_db()
+    try:
+        user = conn.execute(
+            "SELECT id, username, password_hash, role FROM users WHERE username = ?",
+            (username,)
+        ).fetchone()
+
+        if user is None or not check_password_hash(user["password_hash"], password):
+            return error("Invalid username or password.", 401)
+
+        return jsonify({
+            "message": "Login successful",
+            "user": {
+                "id": user["id"],
+                "username": user["username"],
+                "role": user["role"]
+            }
+        })
+    finally:
+        conn.close()
+
+# --- END OF AUTHENTICATION ---
 
 
 # Get all products from the database.
@@ -373,8 +441,6 @@ def checkout():
         # Save all changes together.
         conn.commit()
 
-        # FIX: Return sale_id and total at the top level.
-        # React expects data.sale_id and data.total.
         return jsonify({
             "message": "Checkout successful.",
             "sale_id": sale_id,

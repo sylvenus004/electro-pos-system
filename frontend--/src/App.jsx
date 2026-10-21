@@ -1,11 +1,10 @@
-
 import React, { useEffect, useState } from "react";
 import POSCheckout from "./POSCheckout";
 import "./App.css";
 
 const API_URL = window.location.hostname === 'localhost'
     ? 'http://localhost:5000/api'
-    :'https://electro-pos-system.onrender.com/api';
+    : '/api';
 
 // Format prices consistently throughout the application.
 function formatPrice(price) {
@@ -99,25 +98,21 @@ function Dashboard({ sales, products, openPage }) {
 
       <div className="stats-grid">
         <article className="stat-card">
-          <span className="stat-icon purple">↗</span>
           <p>Total Sales</p>
           <h2>{formatPrice(totalSales)}</h2>
         </article>
 
         <article className="stat-card">
-          <span className="stat-icon blue">□</span>
           <p>Products</p>
           <h2>{products.length}</h2>
         </article>
 
         <article className="stat-card">
-          <span className="stat-icon orange">!</span>
           <p>Low Stock</p>
           <h2>{lowStockCount}</h2>
         </article>
 
         <article className="stat-card">
-          <span className="stat-icon green">✓</span>
           <p>Completed Sales</p>
           <h2>{sales.length}</h2>
         </article>
@@ -575,21 +570,70 @@ function CategoriesPage() {
 
 // Sidebar links.
 const navigationItems = [
-  { name: "Dashboard", icon: "▦" },
-  { name: "POS / Checkout", icon: "▣" },
-  { name: "Products", icon: "□" },
-  { name: "Categories", icon: "▤" },
-  { name: "Sales History", icon: "↗" },
+  { name: "Dashboard" },
+  { name: "POS / Checkout" },
+  { name: "Products" },
+  { name: "Categories" },
+  { name: "Sales History" },
 ];
 
 export default function App() {
+  // Check if a user is already logged in from previous session
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem("user");
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [authUsername, setAuthUsername] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authError, setAuthError] = useState("");
+
   const [currentPage, setCurrentPage] = useState("Dashboard");
   const [sales, setSales] = useState([]);
   const [products, setProducts] = useState([]);
   const [dashboardError, setDashboardError] = useState("");
 
-  // Load sales and products for the dashboard and sales history.
+  // Handle Login / Registration submission
+  async function handleAuthSubmit(e) {
+    e.preventDefault();
+    setAuthError("");
+    const endpoint = isRegistering ? `${API_URL}/register` : `${API_URL}/login`;
+
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: authUsername, password: authPassword }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Authentication failed");
+      }
+
+      if (isRegistering) {
+        alert("Registration successful! Please log in.");
+        setIsRegistering(false);
+        setAuthPassword("");
+      } else {
+        localStorage.setItem("user", JSON.stringify(data.user));
+        setUser(data.user);
+      }
+    } catch (err) {
+      setAuthError(err.message);
+    }
+  }
+
+  function handleLogout() {
+    localStorage.removeItem("user");
+    setUser(null);
+  }
+
+  // Load sales and products for the dashboard and sales history if authenticated.
   useEffect(() => {
+    if (!user) return;
+
     let isMounted = true;
 
     async function loadDashboardData() {
@@ -631,7 +675,54 @@ export default function App() {
     return () => {
       isMounted = false;
     };
-  }, [currentPage]);
+  }, [currentPage, user]);
+
+  // If user is not authenticated, show the clean login screen
+  if (!user) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f4f6f9' }}>
+        <form onSubmit={handleAuthSubmit} style={{ background: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', width: '320px' }}>
+          <h2 style={{ marginBottom: '20px', textAlign: 'center' }}>{isRegistering ? "Register Account" : "POS Login"}</h2>
+          {authError && <p style={{ color: 'red', fontSize: '14px', marginBottom: '15px' }}>{authError}</p>}
+          
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Username</label>
+            <input
+              type="text"
+              value={authUsername}
+              onChange={(e) => setAuthUsername(e.target.value)}
+              required
+              style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
+            />
+          </div>
+
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Password</label>
+            <input
+              type="password"
+              value={authPassword}
+              onChange={(e) => setAuthPassword(e.target.value)}
+              required
+              style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
+            />
+          </div>
+
+          <button type="submit" style={{ width: '100%', padding: '10px', background: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
+            {isRegistering ? "Register" : "Login"}
+          </button>
+
+          <p style={{ textAlign: 'center', marginTop: '15px', fontSize: '13px' }}>
+            <span 
+              onClick={() => { setIsRegistering(!isRegistering); setAuthError(""); }} 
+              style={{ color: '#007bff', cursor: 'pointer', textDecoration: 'underline' }}
+            >
+              {isRegistering ? "Already have an account? Login" : "Need an account? Register"}
+            </span>
+          </p>
+        </form>
+      </div>
+    );
+  }
 
   // Select the page that should appear in the main content area.
   function displayPage() {
@@ -705,18 +796,25 @@ export default function App() {
               }
               onClick={() => setCurrentPage(item.name)}
             >
-              <span className="nav-icon">{item.icon}</span>
               <span>{item.name}</span>
             </button>
           ))}
         </nav>
 
-        <div className="sidebar-footer">
-          <div className="user-avatar">ES</div>
-          <div>
-            <strong>Shop Manager</strong>
-            <small>Administrator</small>
+        <div className="sidebar-footer" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div className="user-avatar">{user.username.substring(0, 2).toUpperCase()}</div>
+            <div>
+              <strong>{user.username}</strong>
+              <small>{user.role}</small>
+            </div>
           </div>
+          <button 
+            onClick={handleLogout} 
+            style={{ padding: '6px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+          >
+            Logout
+          </button>
         </div>
       </aside>
 
@@ -728,24 +826,17 @@ export default function App() {
             <strong>{currentPage}</strong>
           </div>
 
-          <span className="system-status">● System Online</span>
+          <span className="system-status">System Online</span>
         </header>
 
-        <div className="page-content">
+        <div className="content-body">
           {dashboardError && (
-            <div className="error-banner">
-              Could not load dashboard information: {dashboardError}.
-              Check that the Flask backend is running.
+            <div className="error-banner" role="alert">
+              {dashboardError}
             </div>
           )}
-
           {displayPage()}
         </div>
-
-        <footer className="app-footer">
-          <span>ElectroPOS</span>
-          <span>Electronic Shop Management System</span>
-        </footer>
       </main>
     </div>
   );
