@@ -1,27 +1,28 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "backend/app.py",
-      "use": "@vercel/python"
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "backend": {
+      "root": "backend",
+      "framework": "flask"
     },
-    {
-      "src": "frontend--/package.json",
-      "use": "@vercel/static-build",
-      "config": { "distDir": "dist" }
+    "frontend--": {
+      "root": "frontend--",
+      "framework": "vite"
     }
-  ],
-  "routes": [
+  },
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "/backend/app.py"
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "backend"
+      }
     },
     {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "destination": "/frontend--/index.html"
+      "source": "/(.*)",
+      "destination": {
+        "service": "frontend--"
+      }
     }
   ]
 }
+
