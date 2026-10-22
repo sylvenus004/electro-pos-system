@@ -1,3 +1,4 @@
+
 # requirements
 blinker==1.9.0
 click==8.1.8
@@ -9,3 +10,4 @@ Jinja2==3.1.5
 MarkupSafe==3.0.2
 Werkzeug==3.1.3
 python-dotenv==1.0.1
+libsql
