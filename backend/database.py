@@ -6,22 +6,21 @@ def get_db():
     turso_token = os.environ.get("TURSO_AUTH_TOKEN")
 
     if turso_url:
-        import libsql
-        # Connect directly to the remote Turso cloud database (no local file needed)
-        conn = libsql.connect(
-            database=turso_url,
+        import turso_serverless
+        # Connect directly to Turso Cloud over HTTP with full write privileges
+        conn = turso_serverless.connect(
+            turso_url,
             auth_token=turso_token
         )
         conn.row_factory = sqlite3.Row
         return conn
     else:
-        # Fall back to your local SQLite database file during development
+        # Fall back to local SQLite during development
         conn = sqlite3.connect('database.db')
         conn.row_factory = sqlite3.Row
         return conn
 
 def init_db():
-    # Initialize local database tables only when running locally without Turso
     turso_url = os.environ.get("TURSO_DATABASE_URL")
     if not turso_url:
         conn = sqlite3.connect('database.db')
