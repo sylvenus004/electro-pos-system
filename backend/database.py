@@ -7,12 +7,14 @@ TURSO_AUTH_TOKEN = os.environ.get("TURSO_AUTH_TOKEN")
 
 def get_db():
     if TURSO_DATABASE_URL:
-        # Connect to Turso in production on Vercel
-        import libsql_client
-        return libsql_client.connect(
-            url=TURSO_DATABASE_URL,
+        # Use the official 'libsql' package (drop-in replacement for sqlite3)
+        import libsql
+        conn = libsql.connect(
+            database=TURSO_DATABASE_URL,
             auth_token=TURSO_AUTH_TOKEN
         )
+        conn.row_factory = sqlite3.Row
+        return conn
     else:
         # Fall back to your local SQLite database file during development
         conn = sqlite3.connect('database.db')
@@ -82,3 +84,4 @@ def init_db():
         
         conn.commit()
         conn.close()
+        
