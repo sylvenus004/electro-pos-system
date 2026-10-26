@@ -5,26 +5,26 @@ def get_db():
     turso_url = os.environ.get("TURSO_DATABASE_URL")
     turso_token = os.environ.get("TURSO_AUTH_TOKEN")
 
-    if turso_url:
+    if turso_url and turso_token:
         import turso_serverless
-        # Connect directly to Turso Cloud over HTTP with full write privileges
         conn = turso_serverless.connect(
             turso_url,
             auth_token=turso_token
         )
-        conn.row_factory = sqlite3.Row
+        # Optional: only if the driver supports it
+        # conn.row_factory = sqlite3.Row
         return conn
     else:
-        # Fall back to local SQLite during development
-        conn = sqlite3.connect('database.db')
+        # Local development only
+        conn = sqlite3.connect("database.db")
         conn.row_factory = sqlite3.Row
         return conn
 
+
 def init_db():
-    turso_url = os.environ.get("TURSO_DATABASE_URL")
-    if not turso_url:
-        conn = sqlite3.connect('database.db')
-        
+    """Create tables on both local SQLite and Turso."""
+    conn = get_db()
+    try:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS categories (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -71,7 +71,7 @@ def init_db():
                 role TEXT DEFAULT 'Cashier'
             )
         """)
-        
         conn.commit()
+        print("Database initialized successfully")
+    finally:
         conn.close()
-        
