@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import POSCheckout from "./POSCheckout";
 import "./App.css";
@@ -733,7 +734,7 @@ export default function App() {
             >
               {authError}
             </p>
-                
+          )}
 
           <div style={{ marginBottom: "15px" }}>
             <label
@@ -956,4 +957,4 @@ export default function App() {
       </main>
     </div>
   );
-                }
+}
