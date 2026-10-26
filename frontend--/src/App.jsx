@@ -2,11 +2,16 @@ import React, { useEffect, useState } from "react";
 import POSCheckout from "./POSCheckout";
 import "./App.css";
 
-const API_URL = window.location.hostname === 'localhost'
-    ? 'http://localhost:5000/api'
-    : '/api';
+// This decides which backend URL to use
+// On your computer it uses localhost
+// On Vercel it uses the address you set in VITE_API_URL
+const API_URL = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : window.location.hostname === "localhost"
+    ? "http://localhost:5000/api"
+    : "/api";
 
-// Format prices consistently throughout the application.
+// This function makes prices look nice, for example 25000 becomes KSh 25,000.00
 function formatPrice(price) {
   const amount = Number(price);
 
@@ -25,7 +30,7 @@ function formatPrice(price) {
   })}`;
 }
 
-// Display completed sales in a reusable table.
+// This component shows a table of completed sales
 function SalesTable({ sales }) {
   if (sales.length === 0) {
     return (
@@ -67,12 +72,14 @@ function SalesTable({ sales }) {
   );
 }
 
-// Dashboard page with a summary of shop activity.
+// This is the Dashboard page that shows a summary of the shop
 function Dashboard({ sales, products, openPage }) {
+  // Calculate total money made from all sales
   const totalSales = sales.reduce((runningTotal, sale) => {
     return runningTotal + (Number(sale.total_amount) || 0);
   }, 0);
 
+  // Count how many products are running low on stock
   const lowStockCount = products.filter((product) => {
     const quantity = Number(product.quantity) || 0;
     const minimumStock = Number(product.low_stock_threshold ?? 5);
@@ -129,7 +136,7 @@ function Dashboard({ sales, products, openPage }) {
             className="text-button"
             onClick={() => openPage("Sales History")}
           >
-            View All →
+            View All
           </button>
         </div>
 
@@ -139,7 +146,7 @@ function Dashboard({ sales, products, openPage }) {
   );
 }
 
-// Products page: add new products and view existing inventory.
+// This is the Products page where you can add and view products
 function ProductsPage() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -151,7 +158,7 @@ function ProductsPage() {
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("success");
 
-  // Values entered into the Add Product form.
+  // These are the values typed into the Add Product form
   const [productForm, setProductForm] = useState({
     name: "",
     brand: "",
@@ -162,7 +169,7 @@ function ProductsPage() {
     category_id: "",
   });
 
-  // Get the inventory and category lists from Flask.
+  // This function gets products and categories from the backend
   async function loadProductsAndCategories() {
     const [productsResponse, categoriesResponse] = await Promise.all([
       fetch(`${API_URL}/products`),
@@ -188,7 +195,7 @@ function ProductsPage() {
     setCategories(categoryData);
   }
 
-  // Load information when the Products page opens.
+  // Load products and categories when the page opens
   useEffect(() => {
     async function loadPage() {
       try {
@@ -204,7 +211,7 @@ function ProductsPage() {
     loadPage();
   }, []);
 
-  // Update the field the user is currently typing into.
+  // Update the form when the user types
   function handleInputChange(event) {
     const { name, value } = event.target;
 
@@ -214,7 +221,7 @@ function ProductsPage() {
     }));
   }
 
-  // Clear all the fields after a product has been saved.
+  // Clear the form after saving a product
   function resetProductForm() {
     setProductForm({
       name: "",
@@ -227,7 +234,7 @@ function ProductsPage() {
     });
   }
 
-  // Save a new product in the SQLite database through Flask.
+  // This function runs when the user clicks Save Product
   async function handleAddProduct(event) {
     event.preventDefault();
 
@@ -237,22 +244,28 @@ function ProductsPage() {
     const quantity = Number(productForm.quantity);
     const lowStockThreshold = Number(productForm.low_stock_threshold);
 
-    // Check the entered details before sending them to the backend.
+    // Simple checks before sending data to the backend
     if (!productForm.name.trim()) {
       setMessage("Please enter a product name.");
       setMessageType("error");
       return;
     }
 
-    if (productForm.price.trim() === "" ||
-        !Number.isFinite(price) || price < 0) {
+    if (
+      productForm.price.trim() === "" ||
+      !Number.isFinite(price) ||
+      price < 0
+    ) {
       setMessage("Please enter a valid selling price.");
       setMessageType("error");
       return;
     }
 
-    if (productForm.quantity.trim() === "" ||
-        !Number.isInteger(quantity) || quantity < 0) {
+    if (
+      productForm.quantity.trim() === "" ||
+      !Number.isInteger(quantity) ||
+      quantity < 0
+    ) {
       setMessage("Quantity must be a whole number of zero or more.");
       setMessageType("error");
       return;
@@ -289,7 +302,7 @@ function ProductsPage() {
         throw new Error(result.error || "Could not save the product.");
       }
 
-      // Refresh the table so it includes the new product.
+      // Refresh the product list after saving
       await loadProductsAndCategories();
 
       resetProductForm();
@@ -326,9 +339,7 @@ function ProductsPage() {
       {message && (
         <div
           className={
-            messageType === "error"
-              ? "error-banner"
-              : "success-banner"
+            messageType === "error" ? "error-banner" : "success-banner"
           }
           role={messageType === "error" ? "alert" : "status"}
         >
@@ -496,7 +507,7 @@ function ProductsPage() {
   );
 }
 
-// Reusable page for viewing categories.
+// This page shows all product categories
 function CategoriesPage() {
   const [categories, setCategories] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
@@ -568,7 +579,7 @@ function CategoriesPage() {
   );
 }
 
-// Sidebar links.
+// These are the links shown in the sidebar
 const navigationItems = [
   { name: "Dashboard" },
   { name: "POS / Checkout" },
@@ -578,7 +589,7 @@ const navigationItems = [
 ];
 
 export default function App() {
-  // Check if a user is already logged in from previous session
+  // Check if a user is already logged in
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem("user");
     return saved ? JSON.parse(saved) : null;
@@ -594,18 +605,25 @@ export default function App() {
   const [products, setProducts] = useState([]);
   const [dashboardError, setDashboardError] = useState("");
 
-  // Handle Login / Registration submission
+  // This runs when the user clicks Login or Register
   async function handleAuthSubmit(e) {
     e.preventDefault();
     setAuthError("");
-    const endpoint = isRegistering ? `${API_URL}/register` : `${API_URL}/login`;
+
+    const endpoint = isRegistering
+      ? `${API_URL}/register`
+      : `${API_URL}/login`;
 
     try {
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: authUsername, password: authPassword }),
+        body: JSON.stringify({
+          username: authUsername,
+          password: authPassword,
+        }),
       });
+
       const data = await response.json();
 
       if (!response.ok) {
@@ -617,6 +635,7 @@ export default function App() {
         setIsRegistering(false);
         setAuthPassword("");
       } else {
+        // Save the user details so they stay logged in
         localStorage.setItem("user", JSON.stringify(data.user));
         setUser(data.user);
       }
@@ -625,12 +644,13 @@ export default function App() {
     }
   }
 
+  // Log the user out
   function handleLogout() {
     localStorage.removeItem("user");
     setUser(null);
   }
 
-  // Load sales and products for the dashboard and sales history if authenticated.
+  // Load sales and products when the user is logged in
   useEffect(() => {
     if (!user) return;
 
@@ -677,46 +697,127 @@ export default function App() {
     };
   }, [currentPage, user]);
 
-  // If user is not authenticated, show the clean login screen
+  // If the user is not logged in, show the login screen
   if (!user) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f4f6f9' }}>
-        <form onSubmit={handleAuthSubmit} style={{ background: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', width: '320px' }}>
-          <h2 style={{ marginBottom: '20px', textAlign: 'center' }}>{isRegistering ? "Register Account" : "POS Login"}</h2>
-          {authError && <p style={{ color: 'red', fontSize: '14px', marginBottom: '15px' }}>{authError}</p>}
-          
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Username</label>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+          background: "#f4f6f9",
+        }}
+      >
+        <form
+          onSubmit={handleAuthSubmit}
+          style={{
+            background: "white",
+            padding: "30px",
+            borderRadius: "8px",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+            width: "320px",
+          }}
+        >
+          <h2 style={{ marginBottom: "20px", textAlign: "center" }}>
+            {isRegistering ? "Register Account" : "POS Login"}
+          </h2>
+
+          {authError && (
+            <p
+              style={{
+                color: "red",
+                fontSize: "14px",
+                marginBottom: "15px",
+              }}
+            >
+              {authError}
+            </p>
+                
+
+          <div style={{ marginBottom: "15px" }}>
+            <label
+              style={{
+                display: "block",
+                marginBottom: "5px",
+                fontSize: "14px",
+              }}
+            >
+              Username
+            </label>
             <input
               type="text"
               value={authUsername}
               onChange={(e) => setAuthUsername(e.target.value)}
               required
-              style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
+              style={{
+                width: "100%",
+                padding: "8px",
+                boxSizing: "border-box",
+              }}
             />
           </div>
 
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Password</label>
+          <div style={{ marginBottom: "20px" }}>
+            <label
+              style={{
+                display: "block",
+                marginBottom: "5px",
+                fontSize: "14px",
+              }}
+            >
+              Password
+            </label>
             <input
               type="password"
               value={authPassword}
               onChange={(e) => setAuthPassword(e.target.value)}
               required
-              style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
+              style={{
+                width: "100%",
+                padding: "8px",
+                boxSizing: "border-box",
+              }}
             />
           </div>
 
-          <button type="submit" style={{ width: '100%', padding: '10px', background: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
+          <button
+            type="submit"
+            style={{
+              width: "100%",
+              padding: "10px",
+              background: "#007bff",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontWeight: "bold",
+            }}
+          >
             {isRegistering ? "Register" : "Login"}
           </button>
 
-          <p style={{ textAlign: 'center', marginTop: '15px', fontSize: '13px' }}>
-            <span 
-              onClick={() => { setIsRegistering(!isRegistering); setAuthError(""); }} 
-              style={{ color: '#007bff', cursor: 'pointer', textDecoration: 'underline' }}
+          <p
+            style={{
+              textAlign: "center",
+              marginTop: "15px",
+              fontSize: "13px",
+            }}
+          >
+            <span
+              onClick={() => {
+                setIsRegistering(!isRegistering);
+                setAuthError("");
+              }}
+              style={{
+                color: "#007bff",
+                cursor: "pointer",
+                textDecoration: "underline",
+              }}
             >
-              {isRegistering ? "Already have an account? Login" : "Need an account? Register"}
+              {isRegistering
+                ? "Already have an account? Login"
+                : "Need an account? Register"}
             </span>
           </p>
         </form>
@@ -724,7 +825,7 @@ export default function App() {
     );
   }
 
-  // Select the page that should appear in the main content area.
+  // This decides which page to show in the main area
   function displayPage() {
     switch (currentPage) {
       case "POS / Checkout":
@@ -770,6 +871,7 @@ export default function App() {
     }
   }
 
+  // Main layout of the application after login
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -777,7 +879,9 @@ export default function App() {
           <div className="brand-mark">E</div>
 
           <div>
-            <strong>Electro<span>POS</span></strong>
+            <strong>
+              Electro<span>POS</span>
+            </strong>
             <small>SHOP MANAGEMENT</small>
           </div>
         </div>
@@ -790,9 +894,7 @@ export default function App() {
               key={item.name}
               type="button"
               className={
-                currentPage === item.name
-                  ? "nav-item active"
-                  : "nav-item"
+                currentPage === item.name ? "nav-item active" : "nav-item"
               }
               onClick={() => setCurrentPage(item.name)}
             >
@@ -801,17 +903,31 @@ export default function App() {
           ))}
         </nav>
 
-        <div className="sidebar-footer" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div className="user-avatar">{user.username.substring(0, 2).toUpperCase()}</div>
+        <div
+          className="sidebar-footer"
+          style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div className="user-avatar">
+              {user.username.substring(0, 2).toUpperCase()}
+            </div>
             <div>
               <strong>{user.username}</strong>
               <small>{user.role}</small>
             </div>
           </div>
-          <button 
-            onClick={handleLogout} 
-            style={{ padding: '6px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+          <button
+            onClick={handleLogout}
+            style={{
+              padding: "6px",
+              background: "#dc3545",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontSize: "12px",
+              fontWeight: "bold",
+            }}
           >
             Logout
           </button>
@@ -840,5 +956,4 @@ export default function App() {
       </main>
     </div>
   );
-}
-
+                }
